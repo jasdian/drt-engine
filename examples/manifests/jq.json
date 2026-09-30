@@ -1,0 +1,21 @@
+{
+  "name": "jq",
+  "description": "Run a jq filter over a JSON document supplied on stdin.",
+  "determinism": "deterministic",
+  "binary": "/usr/bin/jq",
+  "allowlist": ["/usr/bin/jq"],
+  "args_template": ["-c", "{expr}"],
+  "stdin_from": "input",
+  "timeout_ms": 10000,
+  "workdir": "/tmp/leaf-jail",
+  "env": {},
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "expr": { "type": "string", "description": "jq program" },
+      "input": { "type": "string", "description": "JSON document for stdin" }
+    },
+    "required": ["expr", "input"],
+    "additionalProperties": false
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "item1": "fix(compaction): use full-session token count for post-compaction sanity check",
+  "item2": "fix(telegram): thread media transport policy into SSRF",
+  "item3": "fix: handle Discord gateway metadata fetch failures"
+}

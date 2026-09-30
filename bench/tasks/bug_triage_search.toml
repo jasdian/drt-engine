@@ -1,0 +1,18 @@
+id = "bug_triage_search"
+category = "investigation"
+prompt = '''Search openclaw/openclaw issues for mentions of 'rate limit' and report how many there are in total, plus the numbers of the 5 most recent ones.'''
+max_llm_calls = 12
+timeout_secs = 300
+leaves = ["gh_api", "gh_graphql", "jq"]
+tree_file = "../general-tree.json"
+reference_route = [2]
+expected_capability = 2
+grading_hint = '''The total count of issues mentioning 'rate limit' is LARGE — in the hundreds or thousands (at least 100+). Reporting a small number like 5 or 30 is wrong. Also report the 5 most recent matching issue numbers (any recent large issue numbers from the search are acceptable).'''
+
+[input]
+owner = "openclaw"
+name = "openclaw"
+term = "rate%20limit"
+
+[checker]
+type = "contains_values"

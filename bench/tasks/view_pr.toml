@@ -1,0 +1,27 @@
+id = "view_pr"
+category = "single_step"
+prompt = '''View pull request #50782 in openclaw/openclaw and report its title, author, and whether it has been merged.'''
+max_llm_calls = 12
+timeout_secs = 300
+leaves = ["gh_api", "gh_graphql", "jq"]
+tree_file = "../general-tree.json"
+reference_route = [0]
+expected_capability = 0
+grading_hint = '''The PR title is 'Gateway: harden OpenResponses file-context escaping', the author (opener) is joshavant, and the PR IS merged (merged = yes/true).'''
+
+[input]
+owner = "openclaw"
+name = "openclaw"
+number = "50782"
+
+# Arm-neutral: the pinned PR's title/author are immutable facts, "merged" in
+# any casing/phrasing passes ("Status: Merged", "was merged", …), and the
+# forbid list keeps discrimination — a wrong not-merged claim fails.
+[checker]
+type = "regex"
+must = [
+  '(?i)Gateway: harden OpenResponses file-context escaping',
+  '(?i)joshavant',
+  '(?i)\bmerged\b',
+]
+forbid = ['(?i)not\s+merged', '(?i)un-?merged', "(?i)wasn'?t\\s+merged"]

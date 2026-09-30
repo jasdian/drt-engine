@@ -1,0 +1,128 @@
+{
+  "control": {
+    "bug_triage_search": [
+      4,
+      5
+    ],
+    "issue_triage": [
+      5,
+      5
+    ],
+    "issue_triage_ambiguous": [
+      5,
+      5
+    ],
+    "list_open_issues": [
+      2,
+      5
+    ],
+    "merged_pr_ci_audit": [
+      1,
+      5
+    ],
+    "nonexistent_repo": [
+      5,
+      5
+    ],
+    "pr_then_checks": [
+      5,
+      5
+    ],
+    "release_then_body": [
+      5,
+      5
+    ],
+    "repo_topics": [
+      5,
+      5
+    ],
+    "view_pr": [
+      5,
+      5
+    ]
+  },
+  "control_cc": {
+    "bug_triage_search": [
+      3,
+      5
+    ],
+    "issue_triage": [
+      4,
+      4
+    ],
+    "issue_triage_ambiguous": [
+      4,
+      4
+    ],
+    "list_open_issues": [
+      1,
+      4
+    ],
+    "merged_pr_ci_audit": [
+      0,
+      4
+    ],
+    "nonexistent_repo": [
+      4,
+      4
+    ],
+    "pr_then_checks": [
+      4,
+      4
+    ],
+    "release_then_body": [
+      4,
+      4
+    ],
+    "repo_topics": [
+      4,
+      4
+    ],
+    "view_pr": [
+      4,
+      4
+    ]
+  },
+  "full": {
+    "bug_triage_search": [
+      5,
+      5
+    ],
+    "issue_triage": [
+      5,
+      5
+    ],
+    "issue_triage_ambiguous": [
+      5,
+      5
+    ],
+    "list_open_issues": [
+      3,
+      5
+    ],
+    "merged_pr_ci_audit": [
+      0,
+      5
+    ],
+    "nonexistent_repo": [
+      5,
+      5
+    ],
+    "pr_then_checks": [
+      5,
+      5
+    ],
+    "release_then_body": [
+      5,
+      5
+    ],
+    "repo_topics": [
+      5,
+      5
+    ],
+    "view_pr": [
+      5,
+      5
+    ]
+  }
+}

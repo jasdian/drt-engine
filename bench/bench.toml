@@ -1,0 +1,38 @@
+# leaf-bench configuration. The [prices.*] table is the single re-pricing
+# point: to re-value docs/results.md at future token prices, edit it and
+# re-run `leaf-bench report`.
+
+# Provider is auto-selected by which key is in .env (OPENAI_API_KEY → OpenAI).
+# gpt-5.4-mini is AXI's judge model (more comparable). Its price is a
+# CONSERVATIVE estimate (pricing.rs → GPT_5_4_MINI_ESTIMATE) so the budget cap
+# triggers early rather than overspending; token counts are exact and you can
+# re-price via the [prices] table below once real numbers are known.
+router_model = "gpt-5.4-mini"
+budget_cap_microusd = 12_000_000   # $12 (raised for the hybrid-tree refactor re-run: forced pipelines now cost 1 LLM call, the hybrid task 2, plus the fair fused-control live comparison)
+
+# Per-bucket hard sub-caps (micro-USD). A bucket aborts when it would cross
+# its cap; the global cap aborts everything. The ledger (bench/budget.jsonl)
+# is CUMULATIVE across runs, so these also carry the sunk spend of the
+# fix-diagnosis iteration: an earlier build looped last_k runs to their
+# max_llm_calls (a since-fixed reasoning_effort/prompt bug) and burned ~$0.80
+# before the fix landed, so last_k is raised to leave headroom for the clean
+# re-run. The $5.00 global cap still counts every micro-USD ever spent.
+[buckets]
+last_k = 3_000_000
+decayed = 3_000_000
+full = 3_000_000
+control = 3_000_000
+control_live = 2_500_000  # $2.50 — ARCHIVED (fine-grained-leaves free-driver, superseded by the
+                          # fused control in `run --live`). Bucket is ~spent by design; do NOT
+                          # raise it — a re-run would be a new experiment, not a refresh.
+exp-encoding = 500_000    # $0.50
+exp-ceiling = 100_000     # $0.10
+judge = 700_000           # $0.70 (judge-audit + AXI-faithful judge-grade of full/control/control_live)
+
+[run]
+repeats = 5
+timeout_secs = 300
+max_llm_calls = 12
+epsilon_ppm = 0           # exploration off for headline numbers (seeded+journaled where enabled)
+seed_base = 42000
+task_shrink_order = ["bug_triage_search", "pr_then_checks"]

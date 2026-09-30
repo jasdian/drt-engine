@@ -1,0 +1,22 @@
+id = "issue_triage"
+category = "hybrid"
+prompt = '''Triage issue #104040 in openclaw/openclaw: decide whether it is a bug report or a feature/other request, and report its details accordingly — always its number and title, plus its state if it is a bug, or its author if it is a feature/other.'''
+max_llm_calls = 12
+timeout_secs = 300
+leaves = ["gh_api", "gh_graphql", "jq"]
+tree_file = "../general-tree.json"
+# The HYBRID capability: root(LLM) -> issue_triage(seq) -> fetch -> classify(LLM) -> arm(seq).
+# TWO genuine decisions: [7]=pick issue_triage, [1]=classify feature_or_other. The
+# classify decision reads the fetched issue body, so it is where the propagation
+# policy (last_k/decayed/full) actually differs. #104040 is a clear feature request.
+reference_route = [7, 1]
+expected_capability = 7
+grading_hint = '''Issue #104040 is a FEATURE request ("Settings: single Model Providers page with auth state, quota, and cost per configured provider"), opened by steipete. A correct triage classifies it as a feature/other (not a bug) and reports its number (104040), its title, and — because it is a feature — its author (steipete). Reporting it as a bug, or omitting the number/title, is wrong.'''
+
+[input]
+owner = "openclaw"
+name = "openclaw"
+number = "104040"
+
+[checker]
+type = "contains_values"

@@ -1,0 +1,5 @@
+{
+  "author": "joshavant",
+  "merged": "yes",
+  "title": "Gateway: harden OpenResponses file-context escaping"
+}

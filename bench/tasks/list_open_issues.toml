@@ -1,0 +1,17 @@
+id = "list_open_issues"
+category = "single_step"
+prompt = '''List the open issues in openclaw/openclaw and report the title of the most recent one.'''
+max_llm_calls = 12
+timeout_secs = 300
+leaves = ["gh_api", "gh_graphql", "jq"]
+tree_file = "../general-tree.json"
+reference_route = [1]
+expected_capability = 1
+grading_hint = '''Report the title of the current most-recently-created OPEN issue in openclaw/openclaw. Any accurate current newest-open-issue title is acceptable; a stale, empty, or clearly-wrong title is not.'''
+
+[input]
+owner = "openclaw"
+name = "openclaw"
+
+[checker]
+type = "contains_values"

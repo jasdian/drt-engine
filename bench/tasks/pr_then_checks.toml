@@ -1,0 +1,18 @@
+id = "pr_then_checks"
+category = "multi_step"
+prompt = '''Look at pull request #50863 in openclaw/openclaw and report how many CI checks passed and how many failed. Count from the head commit's status-check rollup: passed = checks that concluded SUCCESS, failed = checks that concluded FAILURE; do not count skipped or neutral checks in either number.'''
+max_llm_calls = 12
+timeout_secs = 300
+leaves = ["gh_api", "gh_graphql", "jq"]
+tree_file = "../general-tree.json"
+reference_route = [4]
+expected_capability = 4
+grading_hint = '''Most CI checks passed — a count in the low 30s (about 31-33, depending on whether duplicate/neutral runs are collapsed) — with exactly 3 failures (check-docs, channels, check). Any low-30s pass count together with 3 failures is correct; a small number or a wildly different count is wrong.'''
+
+[input]
+owner = "openclaw"
+name = "openclaw"
+number = "50863"
+
+[checker]
+type = "contains_values"

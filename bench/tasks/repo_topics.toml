@@ -1,0 +1,17 @@
+id = "repo_topics"
+category = "single_step"
+prompt = '''List the topics the openclaw/openclaw repository is tagged with, and how many there are.'''
+max_llm_calls = 12
+timeout_secs = 300
+leaves = ["gh_api", "gh_graphql", "jq"]
+tree_file = "../general-tree.json"
+reference_route = [8]
+expected_capability = 8
+grading_hint = '''The repository's topic names and the count of topics, as GitHub reports them at run time.'''
+
+[input]
+owner = "openclaw"
+name = "openclaw"
+
+[checker]
+type = "contains_values"

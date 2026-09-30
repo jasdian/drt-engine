@@ -1,0 +1,6 @@
+{
+  "author": "steipete",
+  "kind": "feature",
+  "number": 104040,
+  "title": "Settings: single Model Providers page with auth state, quota, and cost per configured provider"
+}

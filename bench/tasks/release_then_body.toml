@@ -1,0 +1,18 @@
+id = "release_then_body"
+category = "multi_step"
+prompt = '''Find the release tagged v2026.3.13-1 in openclaw/openclaw and report the first three items from its 'What's Changed' section.'''
+max_llm_calls = 12
+timeout_secs = 300
+leaves = ["gh_api", "gh_graphql", "jq"]
+tree_file = "../general-tree.json"
+reference_route = [3]
+expected_capability = 3
+grading_hint = '''The answer should list the first three changelog items of the latest release's body (recent fix/feat entries). Any answer that reproduces those three item lines is correct.'''
+
+[input]
+owner = "openclaw"
+name = "openclaw"
+tag = "v2026.3.13-1"
+
+[checker]
+type = "contains_values"

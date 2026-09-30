@@ -1,0 +1,26 @@
+id = "issue_triage_ambiguous"
+category = "hybrid"
+prompt = '''Triage issue #93120 in openclaw/openclaw: decide whether it is a bug report or a feature/other request, and report its details accordingly — always its number and title, plus its state if it is a bug, or its author if it is a feature/other.'''
+max_llm_calls = 12
+timeout_secs = 300
+leaves = ["gh_api", "gh_graphql", "jq"]
+tree_file = "../general-tree.json"
+# HYBRID + GENUINELY AMBIGUOUS. #93120's title is literally "[Bug/Feature]: … rate
+# limits fail to retry (regex misclassification)" and its body both reports a retry
+# failure (bug) AND asks to make retries configurable (feature). Labels are stripped
+# from what `classify` sees (GraphQL field selection), so the LLM must judge from the
+# title+body alone. This task CAPTURES how the LLM resolves a genuine ambiguity and
+# whether the propagation policy (last_k/decayed/full — the retained body content)
+# tips the decision. Reference takes the feature branch; the bug-vs-feature call is
+# NOT graded for correctness (both defensible) — see the report's classify-capture.
+reference_route = [7, 1]
+expected_capability = 7
+grading_hint = '''Issue #93120 is GENUINELY AMBIGUOUS: its title is "[Bug/Feature]: Gemini TPM/RPM rate limits fail to retry (regex misclassification)" and it both describes a retry failure (bug) and asks to make the retry cap configurable (feature). EITHER classification is acceptable. PASS if the answer reports the issue number (93120) and its title correctly; the bug-vs-feature classification itself is NOT graded.'''
+
+[input]
+owner = "openclaw"
+name = "openclaw"
+number = "93120"
+
+[checker]
+type = "contains_values"

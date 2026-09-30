@@ -1,0 +1,20 @@
+[package]
+name = "leaf-llm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Anthropic-backed routing layer with seeded epsilon-greedy exploration"
+
+[dependencies]
+leaf-traits = { workspace = true }
+leaf-core = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+rand_core = { workspace = true }
+rand_chacha = { workspace = true }
+tiktoken-rs = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }

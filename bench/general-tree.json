@@ -1,0 +1,362 @@
+{
+  "name": "github-agent",
+  "version": "5",
+  "root": {
+    "name": "root",
+    "goal": "Read the task in the input `prompt` and choose the ONE GitHub operation that answers it. Each capability then runs deterministically (its fetch + reduce) with no further routing — except the hybrid one, which makes a second, genuine decision about the fetched data.",
+    "route": "llm",
+    "candidates": [
+      {
+        "node": "branch",
+        "name": "view_pr",
+        "goal": "Use when the task asks about ONE specific pull request by number (its title, author, or whether it was merged).",
+        "route": "sequence",
+        "candidates": [
+          {
+            "node": "leaf",
+            "name": "fetch_pr",
+            "description": "fetch the pull request JSON from the REST API",
+            "leaf": "gh_api",
+            "tool": "api",
+            "args": {
+              "endpoint": "repos/{input.owner}/{input.name}/pulls/{input.number}"
+            }
+          },
+          {
+            "node": "leaf",
+            "name": "extract_pr",
+            "description": "reduce the PR JSON to title, author, merged",
+            "leaf": "jq",
+            "tool": "jq",
+            "args": {
+              "expr": "{title: .title, author: .user.login, merged: (if .merged then \"yes\" else \"no\" end)}",
+              "input": "{source}"
+            }
+          },
+          {
+            "node": "done",
+            "name": "finish",
+            "description": "final answer produced",
+            "terminal": true
+          }
+        ]
+      },
+      {
+        "node": "branch",
+        "name": "list_open_issues",
+        "goal": "Use when the task asks to list the repository's OPEN issues or report the most recently created open issue.",
+        "route": "sequence",
+        "candidates": [
+          {
+            "node": "leaf",
+            "name": "fetch_issues",
+            "description": "fetch up to 100 open issues (list also contains PRs)",
+            "leaf": "gh_api",
+            "tool": "api",
+            "args": {
+              "endpoint": "repos/{input.owner}/{input.name}/issues?state=open&per_page=100"
+            }
+          },
+          {
+            "node": "leaf",
+            "name": "newest_issue",
+            "description": "drop PRs, take the newest remaining issue's title",
+            "leaf": "jq",
+            "tool": "jq",
+            "args": {
+              "expr": "[.[] | select(has(\"pull_request\") | not)][0] | {most_recent_open_issue_title: .title}",
+              "input": "{source}"
+            }
+          },
+          {
+            "node": "done",
+            "name": "finish",
+            "description": "final answer produced",
+            "terminal": true
+          }
+        ]
+      },
+      {
+        "node": "branch",
+        "name": "search_issues",
+        "goal": "Use when the task asks how many issues mention a phrase (a total count) and/or the most recent matching issues.",
+        "route": "sequence",
+        "candidates": [
+          {
+            "node": "leaf",
+            "name": "search_issues_api",
+            "description": "search issues for the phrase, newest first",
+            "leaf": "gh_api",
+            "tool": "api",
+            "args": {
+              "endpoint": "search/issues?q=repo%3A{input.owner}%2F{input.name}%20is%3Aissue%20%22{input.term}%22&sort=created&order=desc&per_page=5"
+            }
+          },
+          {
+            "node": "leaf",
+            "name": "count_recent",
+            "description": "report total_count and the 5 most recent issue numbers",
+            "leaf": "jq",
+            "tool": "jq",
+            "args": {
+              "expr": "{total_count: .total_count, recent1: .items[0].number, recent2: .items[1].number, recent3: .items[2].number, recent4: .items[3].number, recent5: .items[4].number}",
+              "input": "{source}"
+            }
+          },
+          {
+            "node": "done",
+            "name": "finish",
+            "description": "final answer produced",
+            "terminal": true
+          }
+        ]
+      },
+      {
+        "node": "branch",
+        "name": "view_release",
+        "goal": "Use when the task asks about a specific release/version tag and its changelog body items.",
+        "route": "sequence",
+        "candidates": [
+          {
+            "node": "leaf",
+            "name": "fetch_release",
+            "description": "fetch the release by tag",
+            "leaf": "gh_api",
+            "tool": "api",
+            "args": {
+              "endpoint": "repos/{input.owner}/{input.name}/releases/tags/{input.tag}"
+            }
+          },
+          {
+            "node": "leaf",
+            "name": "first_items",
+            "description": "take the first three changelog items of the release body",
+            "leaf": "jq",
+            "tool": "jq",
+            "args": {
+              "expr": ".body | split(\"## What's Changed\")[1] | split(\"\\r\\n\") | map(select(startswith(\"* \"))) | .[0:3] | map(ltrimstr(\"* \") | split(\" by @\")[0]) | {item1:.[0], item2:.[1], item3:.[2]}",
+              "input": "{source}"
+            }
+          },
+          {
+            "node": "done",
+            "name": "finish",
+            "description": "final answer produced",
+            "terminal": true
+          }
+        ]
+      },
+      {
+        "node": "branch",
+        "name": "pr_checks",
+        "goal": "Use when the task asks how many CI checks passed and failed on ONE specific pull request.",
+        "route": "sequence",
+        "candidates": [
+          {
+            "node": "leaf",
+            "name": "fetch_checks",
+            "description": "fetch the PR head-commit status-check rollup via GraphQL",
+            "leaf": "gh_graphql",
+            "tool": "graphql",
+            "args": {
+              "query": "query { repository(owner: \"{input.owner}\", name: \"{input.name}\") { pullRequest(number: {input.number}) { commits(last: 1) { nodes { commit { statusCheckRollup { state contexts(first: 100) { nodes { __typename ... on CheckRun { name conclusion } ... on StatusContext { context state } } } } } } } } } }"
+            }
+          },
+          {
+            "node": "leaf",
+            "name": "tally_checks",
+            "description": "count passed (SUCCESS) and failed (FAILURE) checks",
+            "leaf": "jq",
+            "tool": "jq",
+            "args": {
+              "expr": ".data.repository.pullRequest.commits.nodes[0].commit.statusCheckRollup.contexts.nodes | {passed: (map(select((.conclusion // .state) == \"SUCCESS\")) | length), failed: (map(select((.conclusion // .state) == \"FAILURE\")) | length)}",
+              "input": "{source}"
+            }
+          },
+          {
+            "node": "done",
+            "name": "finish",
+            "description": "final answer produced",
+            "terminal": true
+          }
+        ]
+      },
+      {
+        "node": "branch",
+        "name": "merged_audit",
+        "goal": "Use when the task asks about the most recently MERGED pull requests and their CI status / how many are green.",
+        "route": "sequence",
+        "candidates": [
+          {
+            "node": "leaf",
+            "name": "fetch_merged",
+            "description": "fetch a superset of merged PRs with mergedAt + rollup via GraphQL",
+            "leaf": "gh_graphql",
+            "tool": "graphql",
+            "args": {
+              "query": "query { repository(owner: \"{input.owner}\", name: \"{input.name}\") { pullRequests(states: MERGED, first: 50, orderBy: {field: UPDATED_AT, direction: DESC}) { nodes { number title mergedAt author { login } commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } } } } }"
+            }
+          },
+          {
+            "node": "leaf",
+            "name": "audit_ci",
+            "description": "sort by mergedAt, take the 10 newest merges, tally green_count",
+            "leaf": "jq",
+            "tool": "jq",
+            "args": {
+              "expr": "[(.data.repository.pullRequests.nodes | sort_by(.mergedAt) | reverse | .[0:10])[] | {title: .title, author: (.author.login // \"unknown\"), green: ((.commits.nodes[0].commit.statusCheckRollup.state // \"NONE\") == \"SUCCESS\")}] as $prs | (reduce range(0; $prs | length) as $i ({}; . + {(\"pr\\($i+1)_title\"): $prs[$i].title, (\"pr\\($i+1)_author\"): $prs[$i].author, (\"pr\\($i+1)_ci\"): (if $prs[$i].green then \"green\" else \"red\" end)})) + {green_count: ([$prs[] | select(.green)] | length)}",
+              "input": "{source}"
+            }
+          },
+          {
+            "node": "done",
+            "name": "finish",
+            "description": "final answer produced",
+            "terminal": true
+          }
+        ]
+      },
+      {
+        "node": "branch",
+        "name": "check_repo",
+        "goal": "Use when the task targets a repository that may not exist and expects a not-found / 404 result.",
+        "route": "sequence",
+        "candidates": [
+          {
+            "node": "leaf",
+            "name": "fetch_repo_issues",
+            "description": "fetch the repo's issues (errors 404 if the repo does not exist)",
+            "leaf": "gh_api",
+            "tool": "api",
+            "args": {
+              "endpoint": "repos/{input.owner}/{input.name}/issues"
+            }
+          },
+          {
+            "node": "done",
+            "name": "finish",
+            "description": "the fetch RESULT (including a 404 / not-found error) IS the final answer here",
+            "terminal": true
+          }
+        ]
+      },
+      {
+        "node": "branch",
+        "name": "issue_triage",
+        "goal": "Use when the task asks to TRIAGE one specific issue by number — decide whether it is a bug report or a feature/other request and report fields accordingly.",
+        "route": "sequence",
+        "candidates": [
+          {
+            "node": "leaf",
+            "name": "fetch_issue",
+            "description": "fetch the issue via GraphQL — number, title, body, state, author ONLY (deliberately NO labels, so classification is a genuine title/body judgement, not a label lookup)",
+            "leaf": "gh_graphql",
+            "tool": "graphql",
+            "args": {
+              "query": "query { repository(owner: \"{input.owner}\", name: \"{input.name}\") { issue(number: {input.number}) { number title state author { login } body } } }"
+            }
+          },
+          {
+            "node": "branch",
+            "name": "classify_issue",
+            "goal": "Read the fetched issue's title and body (no labels are provided). If it primarily reports a BUG (something broken, an error, a crash, a regression), choose bug_report. If it is a feature request, enhancement, question, or discussion, choose feature_or_other. This is a genuine judgement about the title and body text.",
+            "route": "llm",
+            "candidates": [
+              {
+                "node": "branch",
+                "name": "bug_report",
+                "goal": "the issue is a bug report",
+                "route": "sequence",
+                "candidates": [
+                  {
+                    "node": "leaf",
+                    "name": "extract_bug",
+                    "description": "report number, title, state, and kind=bug",
+                    "leaf": "jq",
+                    "tool": "jq",
+                    "args": {
+                      "expr": ".data.repository.issue | {number: .number, title: .title, state: .state, kind: \"bug\"}",
+                      "input": "{source}"
+                    }
+                  },
+                  {
+                    "node": "done",
+                    "name": "finish",
+                    "description": "final answer produced",
+                    "terminal": true
+                  }
+                ]
+              },
+              {
+                "node": "branch",
+                "name": "feature_or_other",
+                "goal": "the issue is a feature request, question, or other",
+                "route": "sequence",
+                "candidates": [
+                  {
+                    "node": "leaf",
+                    "name": "extract_feature",
+                    "description": "report number, title, author, and kind=feature",
+                    "leaf": "jq",
+                    "tool": "jq",
+                    "args": {
+                      "expr": ".data.repository.issue | {number: .number, title: .title, author: .author.login, kind: \"feature\"}",
+                      "input": "{source}"
+                    }
+                  },
+                  {
+                    "node": "done",
+                    "name": "finish",
+                    "description": "final answer produced",
+                    "terminal": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "node": "branch",
+        "name": "repo_topics",
+        "goal": "Use when the task asks which topics a repository is tagged with (the topic list and how many).",
+        "route": "sequence",
+        "candidates": [
+          {
+            "node": "leaf",
+            "name": "fetch_repo",
+            "description": "REQUIRED first step: fetch the repository JSON from the REST API",
+            "leaf": "gh_api",
+            "tool": "api",
+            "args": {
+              "endpoint": "repos/{input.owner}/{input.name}"
+            }
+          },
+          {
+            "node": "leaf",
+            "name": "extract_topics",
+            "description": "REQUIRED reduce step — the operation is NOT done until this runs: reduce to topic count and names",
+            "leaf": "jq",
+            "tool": "jq",
+            "args": {
+              "expr": ".topics as $t | reduce range(0; $t | length) as $i ({topic_count: ($t | length)}; . + {(\"topic\\($i+1)\"): $t[$i]})",
+              "input": "{source}"
+            }
+          },
+          {
+            "node": "done",
+            "name": "finish",
+            "description": "final answer produced",
+            "terminal": true
+          }
+        ]
+      },
+      {
+        "node": "done",
+        "name": "finish",
+        "description": "The task is fully answered, or no capability applies. Choose only if nothing above fits.",
+        "terminal": false
+      }
+    ]
+  }
+}
